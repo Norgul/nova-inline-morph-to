@@ -18,36 +18,28 @@ trait HasInlineMorphToFields
      */
     public function detailFields(NovaRequest $request)
     {
-
         return tap(parent::detailFields($request)->flatten())->each(function ($field) {
-
-            if ($field instanceof InlineMorphTo) {
-
-                $novaResourceClass = $this->getNovaResourceFromAttribute($field->attribute);
-
-                $resources = $field->meta[ 'resources' ]->where('className', $novaResourceClass)
-                                                        ->values()
-                                                        ->toArray();
-                /**
-                 * Filter out all the unnecessary resources
-                 */
-                foreach ($resources as &$resource) {
-
-                    $resource[ 'fields' ] = collect($resource[ 'fields' ])->filter->showOnDetail->values();
-
-                }
-
-                $field->meta[ 'resources' ] = $resources;
-
+            if (!$field instanceof InlineMorphTo) {
+                return;
             }
 
-        });
+            $novaResourceClass = $this->getNovaResourceFromAttribute($field->attribute);
 
+            $resources = $field->meta['resources']->where('className', $novaResourceClass)
+                ->values()
+                ->toArray();
+
+            // Filter out all the unnecessary resources
+            foreach ($resources as &$resource) {
+                $resource['fields'] = collect($resource['fields'])->filter->showOnDetail->values();
+            }
+
+            $field->meta['resources'] = $resources;
+        });
     }
 
     private function getNovaResourceFromAttribute(string $attribute): string
     {
-
         $classPath = $this->model()->getAttribute(
             $this->model()->$attribute()->getMorphType()
         );
@@ -55,7 +47,5 @@ trait HasInlineMorphToFields
         return Nova::resourceForModel(
             Relation::getMorphedModel($classPath) ?: $classPath
         );
-
     }
-
 }
